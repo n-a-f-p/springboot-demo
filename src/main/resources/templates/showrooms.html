@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>房间展示</title>
+    <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+</head>
+<body>
+    创建房间：
+    <form action="/createRoom" method="post">
+        请输入要播放的视频地址:<input type="text" name="vediosrc">
+        房间名:<input type="text" name="roomname">
+        <input type="submit" value="创建房间">
+    </form>
+    <div id="show_rooms">
+        <div th:each="roomid:${rooms}">
+            <a th:href="@{'/roomid/'+${roomid}}" th:text="${roomid}"></a>
+        </div>
+    </div>
+</body>
+</html>

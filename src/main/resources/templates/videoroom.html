@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        #video_c{ width:840px; height:353px;margin:0 auto;}
+    </style>
+    <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <link href="https://cdn.bootcss.com/video.js/7.0.0-alpha.1/alt/video-js-cdn.css" rel="stylesheet">
+    <script src="https://cdn.bootcss.com/video.js/7.0.0-alpha.1/video.min.js"></script>
+    <script src="https://unpkg.com/videojs-contrib-hls/dist/videojs-contrib-hls.js"></script>
+</head>
+<body>
+
+    <video id="video" class="video-js vjs-big-play-centered" data-setup="{}"  controls="controls" width="960" height="360">
+        <source id="vedio_source" src=""/>
+    </video>
+
+    <input id="res" type="text" hidden th:value="${res}">
+    <div id="buttons">
+
+    </div>
+
+
+
+
+    <script th:inline="javascript">
+        $(document).ready(function () {
+
+            var userid = [[${session.userid}]]
+            var roomid = [[${roomid}]]
+            var masterid = [[${masterid}]]
+
+            var video = {
+                "src":"",
+                "time":document.getElementById("video").firstChild.currentTime,
+                "method":""
+            }
+            //连接ws
+            var ws  = new WebSocket("ws://311o149n46.wicp.vip/room/"+roomid+"/"+userid);
+            ws.onopen = function(){
+                console.log("成功连接到房间")
+            }
+            ws.onmessage = function (data) {
+                newdata = JSON.parse(data.data);
+                if(newdata.src!=player.currentSrc()){
+                    videojs("#video").src(newdata.src)
+                }
+                if(newdata.method == "play"){
+                    player.ready(function() {
+                        player.play();
+                    });
+                }else if(newdata.method == "pause"){
+                    player.pause();
+                }else if(newdata.method == "ended"){
+                    player.ended();
+                }
+                changeTimeTo(newdata.time)
+            }
+
+            ws.onclose = function () {
+                ws.close();
+            }
+
+            var player = videojs('#video', {
+                src:""
+            }, function () {
+                console.log('Good to go!');
+                //this.play(); // if you don't trust autoplay for some reason
+                this.on('play', function () {
+                    console.log('开始/恢复播放');
+                    currenttime = document.getElementById("video").firstChild.currentTime;
+                    video.src = player.currentSrc();
+                    video.time = currenttime;
+                    video.method = "play"
+                    ws.send(JSON.stringify(video));
+                });
+                this.on('pause', function () {
+                    console.log('暂停播放');
+                    currenttime = document.getElementById("video").firstChild.currentTime;
+                    video.src = player.currentSrc();
+                    video.time = currenttime;
+                    video.method = "pause"
+                    ws.send(JSON.stringify(video));
+                });
+                this.on('ended', function () {
+                    console.log('结束播放');
+                    currenttime = document.getElementById("video").firstChild.currentTime;
+                    video.src = player.currentSrc();
+                    video.time = currenttime;
+                    video.method = "ended"
+                    ws.send(JSON.stringify(video));
+                });
+            });
+
+            if(masterid == userid){
+                console.log($('#res').val())
+                d = JSON.parse($('#res').val())
+                for(let i = 0; i < d.data[0].source.eps.length; i++){
+                    console.log(d.data[0].source.eps[i].name+":"+d.data[0].source.eps[i].url)
+                    const btn =  $("<button>"+d.data[0].source.eps[i].name+"</button>");
+
+                    $("#buttons").append(btn);
+
+                    btn.click(function () {
+                        console.log(player.currentSrc())
+                        video.src = d.data[0].source.eps[i].url
+                        videojs("#video").src(d.data[0].source.eps[i].url)
+                    })
+                }
+            }
+
+            function changeTimeTo(time) {
+                player.currentTime(time)
+            }
+
+
+
+
+
+        })
+
+    </script>
+</body>
+</html>
